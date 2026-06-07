@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 export const runtime = "edge";
 
 export async function GET(request: Request) {
-  // Simple security check: check for a secret header or key
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -14,7 +13,6 @@ export async function GET(request: Request) {
   try {
     const db = await getDb();
 
-    // Fetch all users who have logged coffee in the last 7 days
     const users = await db
       .prepare(
         `

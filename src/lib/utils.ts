@@ -8,9 +8,9 @@ dayjs.extend(timezone);
 dayjs.locale("id");
 
 export function formatDateTime(date: string | Date) {
-  return dayjs(date).tz("Asia/Jakarta").format("DD MMMM YYYY, HH:mm [WIB]");
+  return dayjs.utc(date).tz("Asia/Jakarta").format("DD MMMM YYYY, HH:mm [WIB]");
 }
 
 export function formatDateOnly(date: string | Date) {
-  return dayjs(date).tz("Asia/Jakarta").format("DD MMMM YYYY");
+  return dayjs.utc(date).tz("Asia/Jakarta").format("DD MMMM YYYY");
 }

@@ -4,7 +4,6 @@ import { getDb } from "./db";
 export async function generateAiAnalysis(userId: string, userName: string) {
   const db = await getDb();
 
-  // Fetch context: last 30 days of logs
   const logs = await db.prepare("SELECT logged_at as date, coffee_tbsp, sugar_tbsp FROM logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50").bind(userId).all<any>();
 
   const averages = await db
@@ -52,7 +51,6 @@ export async function generateAiAnalysis(userId: string, userName: string) {
 
     const analysis = response.text;
 
-    // Cache to D1
     await db
       .prepare(
         "INSERT INTO ai_analysis (user_id, analysis, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET analysis = EXCLUDED.analysis, updated_at = CURRENT_TIMESTAMP"
@@ -64,7 +62,6 @@ export async function generateAiAnalysis(userId: string, userName: string) {
   } catch (error: any) {
     console.error("AI Generation Error:", error);
 
-    // Handle specific API key errors
     if (error.message?.includes("API key not valid") || error.status === "INVALID_ARGUMENT") {
       return "Sistem AI ngambek karena API Key-mu sampah. Benerin dulu konfigurasinya kalau mau dapet omelan kesehatan dari gue.";
     }

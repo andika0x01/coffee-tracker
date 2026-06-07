@@ -8,7 +8,6 @@ export default function SubmitButton() {
     <button
       type="submit"
       onClick={() => {
-        // We trigger toast here, it will show up and then redirect will happen from server action
         toast.success("Catatan berhasil disimpan!");
       }}
       className="w-full glass-panel py-10 rounded-sm font-mono font-bold tracking-[0.5em] uppercase hover:bg-accent hover:text-black transition-all group relative overflow-hidden"

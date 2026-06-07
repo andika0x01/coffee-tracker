@@ -16,10 +16,8 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     return null;
   }
 
-  // Fetch AI Analysis
   let analysis = await getAiAnalysis(session.user.id);
   if (!analysis) {
-    // Fallback if cron hasn't run yet
     analysis = await generateAiAnalysis(session.user.id, session.user.name || "Anonymous");
   }
 
@@ -29,7 +27,9 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   if (range === "all") limit = 9999;
 
   const coffeeStats = await db
-    .prepare(`SELECT date(logged_at) as date, COUNT(*) as total_cups FROM logs WHERE user_id = ? GROUP BY date(logged_at) ORDER BY date DESC LIMIT ${limit}`)
+    .prepare(
+      `SELECT date(logged_at, '+7 hours') as date, COUNT(*) as total_cups FROM logs WHERE user_id = ? GROUP BY date(logged_at, '+7 hours') ORDER BY date DESC LIMIT ${limit}`
+    )
     .bind(session?.user?.id)
     .all<any>();
 

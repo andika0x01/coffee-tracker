@@ -17,7 +17,7 @@ export default async function HomePage() {
 
   const today = dayjs().tz("Asia/Jakarta").format("YYYY-MM-DD");
   const stats = await db
-    .prepare("SELECT SUM(coffee_tbsp) as total_coffee, SUM(sugar_tbsp) as total_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ? AND date(logged_at) = ?")
+    .prepare("SELECT SUM(coffee_tbsp) as total_coffee, SUM(sugar_tbsp) as total_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ? AND date(logged_at, '+7 hours') = ?")
     .bind(session?.user?.id, today)
     .first<{ total_coffee: number; total_sugar: number; total_cups: number }>();
 

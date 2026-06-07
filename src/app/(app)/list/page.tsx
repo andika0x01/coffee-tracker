@@ -4,6 +4,12 @@ import Link from "next/link";
 import { CaretRight, ListBullets, Calendar } from "@phosphor-icons/react/dist/ssr";
 import { formatDateTime } from "@/lib/utils";
 import Footer from "@/components/Footer";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default async function ListPage() {
   const session = await auth();
@@ -13,12 +19,11 @@ export default async function ListPage() {
 
   // Group logs by day
   const groupedLogs = (logs.results || []).reduce((acc: any, log: any) => {
-    const date = new Date(log.logged_at).toISOString().split("T")[0];
+    const date = dayjs.utc(log.logged_at).tz("Asia/Jakarta").format("YYYY-MM-DD");
     if (!acc[date]) acc[date] = [];
     acc[date].push(log);
     return acc;
   }, {});
-
   const sortedDates = Object.keys(groupedLogs).sort((a, b) => b.localeCompare(a));
 
   return (
@@ -80,7 +85,7 @@ export default async function ListPage() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                      {log.notes && <div className="hidden lg:block text-[11px] font-mono text-white/60 max-w-[200px] truncate">// {log.notes}</div>}
+                      {log.notes && <div className="hidden lg:block text-[11px] font-mono text-white/60 max-w-[200px] truncate">{log.notes}</div>}
                       <div className="flex items-center gap-2 text-white/20 group-hover:text-accent transition-colors">
                         <span className="text-[10px] font-mono uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Detail</span>
                         <CaretRight size={18} />
