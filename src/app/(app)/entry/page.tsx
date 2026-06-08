@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { addLog } from "@/lib/actions";
+import { getDb } from "@/lib/db";
 import { Plus, Coffee, Drop, Notepad, Terminal } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import Footer from "@/components/Footer";
@@ -7,6 +8,9 @@ import SubmitButton from "@/components/SubmitButton";
 
 export default async function EntryPage() {
   const session = await auth();
+  const db = await getDb();
+
+  const lastLog = await db.prepare("SELECT coffee_tbsp, sugar_tbsp FROM logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 1").bind(session?.user?.id).first<any>();
 
   return (
     <div className="space-y-12 max-w-5xl">
@@ -51,6 +55,7 @@ export default async function EntryPage() {
                     id="coffee"
                     required
                     autoFocus
+                    defaultValue={lastLog?.coffee_tbsp?.toString()}
                     className="input-cockpit w-full text-6xl py-4"
                     placeholder="0.00"
                   />
@@ -73,6 +78,7 @@ export default async function EntryPage() {
                     name="sugar"
                     id="sugar"
                     required
+                    defaultValue={lastLog?.sugar_tbsp?.toString()}
                     className="input-cockpit w-full text-6xl py-4"
                     placeholder="0.00"
                   />
