@@ -17,7 +17,6 @@ export default async function ListPage() {
 
   const logs = await db.prepare("SELECT * FROM logs WHERE user_id = ? ORDER BY logged_at DESC").bind(session?.user?.id).all<any>();
 
-  // Group logs by day
   const groupedLogs = (logs.results || []).reduce((acc: any, log: any) => {
     const date = dayjs.utc(log.logged_at).tz("Asia/Jakarta").format("YYYY-MM-DD");
     if (!acc[date]) acc[date] = [];

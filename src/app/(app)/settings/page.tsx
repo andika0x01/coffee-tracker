@@ -14,7 +14,7 @@ export default async function SettingsPage() {
             Control_Panel
           </div>
           <h1 className="text-5xl font-bold tracking-tighter">
-            System.<span className="text-accent">Settings</span>
+            System <span className="text-accent">Settings</span>
           </h1>
         </div>
       </header>
@@ -24,7 +24,11 @@ export default async function SettingsPage() {
         <div className="lg:col-span-4 bg-black p-10 space-y-8">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-24 h-24 rounded-full border border-accent/20 p-1 bg-accent/5">
-              <img src={session?.user?.image || ""} alt="Profile" className="w-full h-full rounded-full grayscale hover:grayscale-0 transition-all" />
+              <img
+                src={session?.user?.image ? `/api/proxy/image?url=${encodeURIComponent(session.user.image)}` : ""}
+                alt="Profile"
+                className="w-full h-full rounded-full grayscale hover:grayscale-0 transition-all"
+              />
             </div>
             <div>
               <div className="text-lg font-mono font-bold uppercase tracking-tight">{session?.user?.name}</div>

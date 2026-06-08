@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Fingerprint, Terminal, Cpu, GlobeHemisphereWest } from "@phosphor-icons/react/dist/ssr";
 
 interface FooterProps {
@@ -8,7 +11,11 @@ interface FooterProps {
 }
 
 export default function Footer({ userId, userName, mode, className = "" }: FooterProps) {
-  const buildId = "CF-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const [buildId, setBuildId] = useState("CF-87X92A");
+
+  useEffect(() => {
+    setBuildId("CF-" + Math.random().toString(36).substring(2, 8).toUpperCase());
+  }, []);
 
   return (
     <footer className={`relative mt-20 pt-12 pb-16 border-t border-white/5 ${className}`}>

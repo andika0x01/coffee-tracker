@@ -24,7 +24,6 @@ export async function addLog(formData: FormData) {
     const { ctx } = await getCloudflareContext();
     ctx.waitUntil(generateAiWithRetry(session.user.id, session.user.name || "Anonymous"));
   } catch (e) {
-    // Fallback for local development or environments where context is missing
     console.warn("Cloudflare context not found, running AI analysis synchronously");
     await generateAiWithRetry(session.user.id, session.user.name || "Anonymous");
   }

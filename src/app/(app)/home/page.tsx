@@ -33,9 +33,18 @@ export default async function HomePage() {
             Ringkasan <span className="text-accent">Hari Ini</span>
           </h1>
         </div>
-        <div className="text-right">
-          <div className="text-white/40 text-[10px] font-mono uppercase tracking-widest mb-1">Pengguna</div>
-          <div className="text-lg font-mono">{session?.user?.name}</div>
+        <div className="text-right flex items-center gap-4">
+          <div className="hidden md:block">
+            <div className="text-white/40 text-[10px] font-mono uppercase tracking-widest mb-1">Pengguna</div>
+            <div className="text-lg font-mono">{session?.user?.name}</div>
+          </div>
+          <div className="w-12 h-12 rounded-full border border-white/10 p-1 bg-white/5">
+            <img
+              src={session?.user?.image ? `/api/proxy/image?url=${encodeURIComponent(session.user.image)}` : ""}
+              alt="Profile"
+              className="w-full h-full rounded-full grayscale hover:grayscale-0 transition-all"
+            />
+          </div>
         </div>
       </header>
 
@@ -79,6 +88,46 @@ export default async function HomePage() {
             <div className="text-xs font-mono uppercase tracking-[0.2em] text-white/40">Gelas Kopi</div>
           </div>
         </div>
+
+        {/* Caffeine Progress Bar Card */}
+        {(() => {
+          const totalCaffeineMg = (stats?.total_coffee || 0) * 60;
+          const limitMg = 400;
+          const percentage = Math.min((totalCaffeineMg / limitMg) * 100, 100);
+          const isOverLimit = totalCaffeineMg > limitMg;
+
+          return (
+            <div className="md:col-span-3 glass-panel p-6 rounded-sm space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Konsumsi Kafein Harian</div>
+                  <div className="text-2xl font-mono font-bold">
+                    <span className={isOverLimit ? "text-red-500" : "text-accent"}>{totalCaffeineMg.toFixed(0)}</span>
+                    <span className="text-white/20 text-sm ml-2">/ {limitMg} mg</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Status</div>
+                  <div className={`text-xs font-mono font-bold uppercase ${isOverLimit ? "text-red-500" : "text-accent"}`}>
+                    {isOverLimit ? "Bahaya: Lampaui Batas" : percentage > 80 ? "Peringatan: Hampir Batas" : "Optimal"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className={`h-full transition-all duration-1000 ${isOverLimit ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "bg-accent shadow-[0_0_10px_rgba(var(--accent-rgb),0.3)]"}`}
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+
+              <p className="text-[10px] font-mono leading-relaxed text-white/30 max-w-2xl">
+                Batas aman konsumsi kafein harian untuk orang dewasa adalah maksimal 400 mg per hari (sekitar 2–4 cangkir kopi). Jika Anda memiliki kondisi khusus, batasi hingga
+                maksimal 200 mg (untuk ibu hamil) atau sesuaikan agar tidak mengganggu kualitas tidur Anda.
+              </p>
+            </div>
+          );
+        })()}
       </section>
 
       {/* Quick Action & System Info */}

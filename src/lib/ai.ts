@@ -1,6 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { getDb } from "./db";
 import { revalidatePath } from "next/cache";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export async function generateAiAnalysis(userId: string, userName: string) {
   const db = await getDb();
@@ -11,6 +17,14 @@ export async function generateAiAnalysis(userId: string, userName: string) {
     .prepare("SELECT AVG(coffee_tbsp) as avg_coffee, AVG(sugar_tbsp) as avg_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ?")
     .bind(userId)
     .first<{ avg_coffee: number; avg_sugar: number; total_cups: number }>();
+
+  const today = dayjs().tz("Asia/Jakarta").format("YYYY-MM-DD");
+  const todayStats = await db
+    .prepare("SELECT SUM(coffee_tbsp) as total_coffee FROM logs WHERE user_id = ? AND date(logged_at, '+7 hours') = ?")
+    .bind(userId, today)
+    .first<{ total_coffee: number }>();
+
+  const todayCaffeineMg = (todayStats?.total_coffee || 0) * 60;
 
   if (!averages || averages.total_cups === 0) {
     return "Belum ada data untuk dianalisis. Minum kopi dulu sana, biar otakmu jalan.";
@@ -27,24 +41,37 @@ export async function generateAiAnalysis(userId: string, userName: string) {
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `
-      Anda adalah asisten AI yang sarkastik, cyber-noir, dan sangat jujur tentang kesehatan.
+      Anda adalah asisten AI yang sangat sarkastik, bermulut tajam, cyber-noir, dan sangat jujur tentang kesehatan.
       Nama Anda adalah "Coffee_System_Core".
       Tugas Anda adalah memberikan analisis singkat (maks 3 kalimat) tentang konsumsi kopi dan gula pengguna.
-      Gunakan Bahasa Indonesia yang gaul/santai tapi tajam.
-      Berikan rekomendasi kesehatan yang benar tapi dengan nada menghina/sarkastik.
-      Fokus pada efisiensi kafein dan risiko diabetes jika gula terlalu tinggi.
-      High thinking level: analisis pola, bukan hanya angka.
+      Gunakan Bahasa Indonesia yang gaul/santai tapi sangat tajam dan menghina jika diperlukan.
+      
+      ATURAN KRITIS:
+      1. Batas aman kafein harian adalah 400 mg.
+      2. Jika 'todayCaffeineMg' > 400, Anda WAJIB memarahi pengguna habis-habisan karena mereka sedang mencoba membunuh diri sendiri dengan serangan jantung atau anxiety.
+      3. Jika gula terlalu tinggi (avg_sugar > 2), ejek mereka tentang risiko diabetes atau kaki yang akan diamputasi.
+      4. Berikan rekomendasi kesehatan yang benar tapi dengan nada menghina/sarkastik.
+      5. Fokus pada efisiensi kafein dan risiko kesehatan.
+      6. Jangan pernah memberikan pujian yang tulus. Pujian harus terdengar sinis.
     `;
+
+    const wibTime = new Date().toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
+      dateStyle: "full",
+      timeStyle: "long",
+    });
 
     const context = {
       userName,
+      currentTime: wibTime,
       averages,
+      todayCaffeineMg,
       recentLogs: logs.results,
     };
 
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `Data pengguna ${userName}:\n${JSON.stringify(context, null, 2)}\n\nBerikan analisis sarkastikmu sekarang.`,
+      contents: `Waktu sekarang (WIB): ${wibTime}\nData pengguna ${userName}:\n${JSON.stringify(context, null, 2)}\n\nBerikan analisis sarkastikmu sekarang.`,
       config: {
         systemInstruction,
       },
@@ -59,8 +86,6 @@ export async function generateAiAnalysis(userId: string, userName: string) {
       .bind(userId, analysis)
       .run();
 
-    revalidatePath("/stats");
-
     return analysis;
   } catch (error: any) {
     console.error("AI Generation Error:", error);
@@ -74,12 +99,11 @@ export async function generateAiAnalysis(userId: string, userName: string) {
 }
 
 export async function generateAiWithRetry(userId: string, userName: string, maxRetries = 5) {
-  let delay = 1000; // Start with 1 second
+  let delay = 1000;
 
   for (let i = 0; i < maxRetries; i++) {
     try {
       const result = await generateAiAnalysis(userId, userName);
-      // If it returned a failure message instead of throwing (for some handled cases), we still count it as success in terms of execution
       if (result && (result.includes("malfungsi") || result.includes("ngambek"))) {
         console.warn(`AI Analysis attempt ${i + 1} returned error message, retrying in ${delay}ms...`);
       } else {
@@ -92,7 +116,7 @@ export async function generateAiWithRetry(userId: string, userName: string, maxR
 
     if (i < maxRetries - 1) {
       await new Promise((resolve) => setTimeout(resolve, delay));
-      delay *= 2; // Exponential backoff
+      delay *= 2;
     }
   }
 

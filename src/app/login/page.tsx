@@ -15,7 +15,7 @@ export default function LoginPage() {
 
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.5 }} className="z-10 flex flex-col items-center">
           <Fingerprint size={120} weight="thin" className="text-accent/20 mb-8" />
-          <div className="text-4xl font-mono font-bold tracking-[0.5em] text-white/10 uppercase">Verifikasi_Identitas</div>
+          <div className="text-4xl font-mono font-bold tracking-[0.5em] text-white/10 uppercase">Verifikasi Identitas</div>
         </motion.div>
       </div>
 
