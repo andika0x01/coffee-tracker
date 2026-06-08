@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { getDb } from "./db";
+import { revalidatePath } from "next/cache";
 
 export async function generateAiAnalysis(userId: string, userName: string) {
   const db = await getDb();
@@ -57,6 +58,8 @@ export async function generateAiAnalysis(userId: string, userName: string) {
       )
       .bind(userId, analysis)
       .run();
+
+    revalidatePath("/stats");
 
     return analysis;
   } catch (error: any) {

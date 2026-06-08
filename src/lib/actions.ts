@@ -31,6 +31,7 @@ export async function addLog(formData: FormData) {
 
   revalidatePath("/home");
   revalidatePath("/list");
+  revalidatePath("/stats");
   redirect("/list");
 }
 
@@ -51,6 +52,7 @@ export async function deleteLog(id: string) {
 
   revalidatePath("/home");
   revalidatePath("/list");
+  revalidatePath("/stats");
 }
 
 export async function updateLog(id: string, formData: FormData) {
@@ -74,5 +76,6 @@ export async function updateLog(id: string, formData: FormData) {
 
   revalidatePath("/home");
   revalidatePath("/list");
+  revalidatePath("/stats");
   revalidatePath(`/detail/${id}`);
 }
