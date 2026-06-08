@@ -70,6 +70,33 @@ export async function generateAiAnalysis(userId: string, userName: string) {
   }
 }
 
+export async function generateAiWithRetry(userId: string, userName: string, maxRetries = 5) {
+  let delay = 1000; // Start with 1 second
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const result = await generateAiAnalysis(userId, userName);
+      // If it returned a failure message instead of throwing (for some handled cases), we still count it as success in terms of execution
+      if (result && (result.includes("malfungsi") || result.includes("ngambek"))) {
+        console.warn(`AI Analysis attempt ${i + 1} returned error message, retrying in ${delay}ms...`);
+      } else {
+        console.log(`AI Analysis successful on attempt ${i + 1}`);
+        return result;
+      }
+    } catch (error) {
+      console.error(`AI Analysis attempt ${i + 1} failed:`, error);
+    }
+
+    if (i < maxRetries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
+    }
+  }
+
+  console.error(`AI Analysis failed after ${maxRetries} attempts.`);
+  return null;
+}
+
 export async function getAiAnalysis(userId: string) {
   const db = await getDb();
   const cached = await db.prepare("SELECT analysis FROM ai_analysis WHERE user_id = ?").bind(userId).first<{ analysis: string }>();
