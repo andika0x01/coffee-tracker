@@ -6,6 +6,7 @@ import AiAnalysis from "@/components/AiAnalysis";
 import { getAiAnalysis, generateAiAnalysis } from "@/lib/ai";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import dayjs from "dayjs";
 
 export default async function StatsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const { range = "7d" } = await searchParams;
@@ -43,7 +44,34 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     .bind(session?.user?.id)
     .first<{ avg_coffee: number; avg_sugar: number; total_cups: number }>();
 
-  const chartData = [...(coffeeStats.results || [])].reverse();
+  const dbChartData = coffeeStats.results || [];
+  const chartData: { date: string; total_cups: number }[] = [];
+  const dataMap = new Map(dbChartData.map((d: any) => [d.date, d.total_cups]));
+
+  if (range === "all") {
+    if (dbChartData.length > 0) {
+      const earliestDate = dayjs(dbChartData[dbChartData.length - 1].date);
+      const today = dayjs().add(7, "hour"); // Align with DB's +7 hours logic
+      const daysDiff = today.diff(earliestDate, "day");
+
+      for (let i = 0; i <= daysDiff; i++) {
+        const currentDate = earliestDate.add(i, "day").format("YYYY-MM-DD");
+        chartData.push({
+          date: currentDate,
+          total_cups: dataMap.get(currentDate) || 0,
+        });
+      }
+    }
+  } else {
+    const today = dayjs().add(7, "hour");
+    for (let i = limit - 1; i >= 0; i--) {
+      const currentDate = today.subtract(i, "day").format("YYYY-MM-DD");
+      chartData.push({
+        date: currentDate,
+        total_cups: dataMap.get(currentDate) || 0,
+      });
+    }
+  }
 
   const ranges = [
     { label: "3 Hari", value: "3d" },
