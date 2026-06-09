@@ -34,7 +34,9 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     .all<any>();
 
   const averages = await db
-    .prepare("SELECT AVG(coffee_tbsp) as avg_coffee, AVG(sugar_tbsp) as avg_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ?")
+    .prepare(
+      "SELECT (SUM(coffee_tbsp) * 1.0 / NULLIF(COUNT(DISTINCT date(logged_at, '+7 hours')), 0)) as avg_coffee, (SUM(sugar_tbsp) * 1.0 / NULLIF(COUNT(DISTINCT date(logged_at, '+7 hours')), 0)) as avg_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ?"
+    )
     .bind(session?.user?.id)
     .first<{ avg_coffee: number; avg_sugar: number; total_cups: number }>();
 
