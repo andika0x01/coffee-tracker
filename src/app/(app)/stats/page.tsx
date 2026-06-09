@@ -16,10 +16,13 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     return null;
   }
 
-  let analysis = await getAiAnalysis(session.user.id);
-  if (!analysis) {
-    analysis = await generateAiAnalysis(session.user.id, session.user.name || "Anonymous");
+  let analysisData = await getAiAnalysis(session.user.id);
+  if (!analysisData) {
+    analysisData = await generateAiAnalysis(session.user.id, session.user.name || "Anonymous");
   }
+
+  const analysis = analysisData?.analysis;
+  const updatedAt = analysisData?.updated_at;
 
   let limit = 7;
   if (range === "3d") limit = 3;
@@ -111,7 +114,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
           <div className="h-px w-8 bg-accent" />
           <h2 className="text-xs font-mono uppercase tracking-[0.4em] text-white/20">AI Health Report</h2>
         </div>
-        <AiAnalysis analysis={analysis} />
+        <AiAnalysis analysis={analysis} updatedAt={updatedAt} />
       </section>
 
       {/* Historical Graph */}

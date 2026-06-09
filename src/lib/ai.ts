@@ -8,7 +8,7 @@ import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export async function generateAiAnalysis(userId: string, userName: string) {
+export async function generateAiAnalysis(userId: string, userName: string): Promise<{ analysis: string; updated_at: string }> {
   const db = await getDb();
 
   const logs = await db.prepare("SELECT logged_at as date, coffee_tbsp, sugar_tbsp FROM logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50").bind(userId).all<any>();
@@ -27,7 +27,10 @@ export async function generateAiAnalysis(userId: string, userName: string) {
   const todayCaffeineMg = (todayStats?.total_coffee || 0) * 60;
 
   if (!averages || averages.total_cups === 0) {
-    return "Belum ada data untuk dianalisis. Minum kopi dulu sana, biar otakmu jalan.";
+    return {
+      analysis: "Belum ada data untuk dianalisis. Minum kopi dulu sana, biar otakmu jalan.",
+      updated_at: new Date().toISOString(),
+    };
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -77,7 +80,8 @@ export async function generateAiAnalysis(userId: string, userName: string) {
       },
     });
 
-    const analysis = response.text;
+    const analysis = response.text || "Terjadi kesalahan saat memproses respons AI.";
+    const updatedAt = new Date().toISOString();
 
     await db
       .prepare(
@@ -86,15 +90,16 @@ export async function generateAiAnalysis(userId: string, userName: string) {
       .bind(userId, analysis)
       .run();
 
-    return analysis;
+    return { analysis, updated_at: updatedAt };
   } catch (error: any) {
     console.error("AI Generation Error:", error);
 
-    if (error.message?.includes("API key not valid") || error.status === "INVALID_ARGUMENT") {
-      return "Sistem AI ngambek karena API Key-mu sampah. Benerin dulu konfigurasinya kalau mau dapet omelan kesehatan dari gue.";
-    }
+    const errorMsg =
+      error.message?.includes("API key not valid") || error.status === "INVALID_ARGUMENT"
+        ? "Sistem AI ngambek karena API Key-mu sampah. Benerin dulu konfigurasinya kalau mau dapet omelan kesehatan dari gue."
+        : "Terjadi malfungsi pada modul analisis. Sepertinya otak AI-nya korslet kena tumpahan kopi. Coba lagi nanti.";
 
-    return "Terjadi malfungsi pada modul analisis. Sepertinya otak AI-nya korslet kena tumpahan kopi. Coba lagi nanti.";
+    return { analysis: errorMsg, updated_at: new Date().toISOString() };
   }
 }
 
@@ -104,7 +109,7 @@ export async function generateAiWithRetry(userId: string, userName: string, maxR
   for (let i = 0; i < maxRetries; i++) {
     try {
       const result = await generateAiAnalysis(userId, userName);
-      if (result && (result.includes("malfungsi") || result.includes("ngambek"))) {
+      if (result && (result.analysis.includes("malfungsi") || result.analysis.includes("ngambek"))) {
         console.warn(`AI Analysis attempt ${i + 1} returned error message, retrying in ${delay}ms...`);
       } else {
         console.log(`AI Analysis successful on attempt ${i + 1}`);
@@ -124,9 +129,9 @@ export async function generateAiWithRetry(userId: string, userName: string, maxR
   return null;
 }
 
-export async function getAiAnalysis(userId: string) {
+export async function getAiAnalysis(userId: string): Promise<{ analysis: string; updated_at: string } | null> {
   const db = await getDb();
-  const cached = await db.prepare("SELECT analysis FROM ai_analysis WHERE user_id = ?").bind(userId).first<{ analysis: string }>();
+  const cached = await db.prepare("SELECT analysis, updated_at FROM ai_analysis WHERE user_id = ?").bind(userId).first<{ analysis: string; updated_at: string }>();
 
-  return cached?.analysis;
+  return cached || null;
 }

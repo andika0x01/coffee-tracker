@@ -1,12 +1,14 @@
 "use client";
 
 import { Terminal, Robot, Warning } from "@phosphor-icons/react";
+import { formatDateTime } from "@/lib/utils";
 
 interface AiAnalysisProps {
   analysis?: string;
+  updatedAt?: string;
 }
 
-export default function AiAnalysis({ analysis }: AiAnalysisProps) {
+export default function AiAnalysis({ analysis, updatedAt }: AiAnalysisProps) {
   if (!analysis) return null;
 
   return (
@@ -32,7 +34,7 @@ export default function AiAnalysis({ analysis }: AiAnalysisProps) {
         <p className="text-sm md:text-base font-mono leading-relaxed text-white/90 italic">"{analysis}"</p>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+      <div className="mt-6 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
@@ -44,7 +46,10 @@ export default function AiAnalysis({ analysis }: AiAnalysisProps) {
             Health_Protocol_Priority: High
           </div>
         </div>
-        <div className="text-[8px] font-mono text-white/10 uppercase">Ver: 3.5-FLASH-SARCASM</div>
+        <div className="flex flex-col items-end gap-1">
+          <div className="text-[8px] font-mono text-white/10 uppercase">Ver: 3.5-FLASH-SARCASM</div>
+          {updatedAt && <div className="text-[8px] font-mono text-white/30 uppercase tracking-tighter">Last Updated: {formatDateTime(updatedAt)}</div>}
+        </div>
       </div>
 
       <style jsx>{`
