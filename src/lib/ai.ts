@@ -11,7 +11,8 @@ dayjs.extend(timezone);
 export async function generateAiAnalysis(userId: string, userName: string): Promise<{ analysis: string; updated_at: string }> {
   const db = await getDb();
 
-  const logs = await db.prepare("SELECT logged_at as date, coffee_tbsp, sugar_tbsp FROM logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50").bind(userId).all<any>();
+  const logsResult = await db.prepare("SELECT logged_at as date, coffee_tbsp, sugar_tbsp FROM logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50").bind(userId).all<any>();
+  const logs = logsResult.results || [];
 
   const averages = await db
     .prepare("SELECT AVG(coffee_tbsp) as avg_coffee, AVG(sugar_tbsp) as avg_sugar, COUNT(*) as total_cups FROM logs WHERE user_id = ?")
@@ -28,7 +29,7 @@ export async function generateAiAnalysis(userId: string, userName: string): Prom
 
   if (!averages || averages.total_cups === 0) {
     return {
-      analysis: "Belum ada data untuk dianalisis. Minum kopi dulu sana, biar otakmu jalan.",
+      analysis: "Halo! Saya Dr. AI Health Monitor. Sepertinya Anda belum mencatat konsumsi kopi. Mari mulai hidup sehat dengan mencatat asupan harian Anda.",
       updated_at: new Date().toISOString(),
     };
   }
@@ -44,43 +45,46 @@ export async function generateAiAnalysis(userId: string, userName: string): Prom
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `
-      Anda adalah asisten AI yang sangat sarkastik, bermulut tajam, cyber-noir, dan sangat jujur tentang kesehatan.
-      Nama Anda adalah "Coffee_System_Core".
-      Tugas Anda adalah memberikan analisis singkat (maks 3 kalimat) tentang konsumsi kopi dan gula pengguna.
-      Gunakan Bahasa Indonesia yang gaul/santai.
+      Anda adalah seorang dokter profesional, empatik, dan berwawasan luas yang peduli pada kesehatan pasien.
+      Nama Anda adalah "Dr. AI Health Monitor".
+      Tugas Anda adalah memberikan analisis singkat (maks 3-5 kalimat) tentang pola konsumsi kopi dan gula pengguna berdasarkan data telemetri yang diberikan.
+      Gunakan Bahasa Indonesia yang sopan, profesional, menenangkan, namun tetap tegas terkait anjuran kesehatan.
       
       ATURAN KRITIS:
-      1. Batas aman kafein harian adalah 400 mg.
-      2. Jika 'todayCaffeineMg' > 400, Anda WAJIB memarahi pengguna habis-habisan karena mereka sedang mencoba membunuh diri sendiri.
-      3. Jika gula terlalu tinggi (avg_sugar > 2), ejek mereka tentang risiko diabetes dengan sangat tajam.
-      4. JIKA PENGGUNA HIDUP SEHAT (kafein < 400mg DAN avg_sugar <= 1), berikan PUJIAN TULUS yang menunjukkan Anda terkesan dengan disiplin mereka. Tetap gunakan gaya cyber-noir tapi jangan menghina.
-      5. Jika di antara keduanya (tidak terlalu sehat tapi tidak berbahaya), gunakan nada sarkastik standar.
-      6. Fokus pada efisiensi kafein dan risiko kesehatan.
+      1. Batas aman kafein harian adalah 400 mg (sekitar 4 cangkir kopi).
+      2. Jika konsumsi kafein hari ini ('konsumsiKafeinHariIni') > 400 mg, peringatkan pengguna dengan lembut namun tegas tentang risiko kesehatan seperti jantung berdebar, insomnia, dan kecemasan.
+      3. Jika rata-rata konsumsi gula terlalu tinggi (rataRataGulaPerGelas > 2), berikan edukasi mengenai risiko diabetes dan sarankan pengurangan gula secara bertahap.
+      4. JIKA PENGGUNA HIDUP SEHAT (kafein < 400mg DAN rataRataGulaPerGelas <= 1), berikan apresiasi dan motivasi agar mereka mempertahankan pola hidup sehat tersebut.
+      5. Berikan saran praktis yang relevan, seperti anjuran minum air putih, waktu minum kopi terakhir agar tidak mengganggu tidur (idealnya 6-8 jam sebelum tidur), atau membatasi gula.
+      6. Fokus pada gaya bahasa medis yang suportif, tanpa kesan menghakimi atau sarkas.
     `;
 
-    const wibTime = new Date().toLocaleString("id-ID", {
-      timeZone: "Asia/Jakarta",
-      dateStyle: "full",
-      timeStyle: "long",
-    });
+    const lastDrink = logs.length > 0 ? dayjs(logs[0].date).tz("Asia/Jakarta").format("DD MMM YYYY, HH:mm") : "Belum ada data";
 
     const context = {
-      userName,
-      currentTime: wibTime,
-      averages,
-      todayCaffeineMg,
-      recentLogs: logs.results,
+      namaPasien: userName,
+      waktuPemeriksaan: dayjs().tz("Asia/Jakarta").format("dddd, DD MMMM YYYY, HH:mm"),
+      totalGelasKopiKeseluruhan: averages.total_cups,
+      rataRataKopiPerGelas: (averages.avg_coffee || 0).toFixed(2) + " sdm",
+      rataRataGulaPerGelas: (averages.avg_sugar || 0).toFixed(2) + " sdm",
+      konsumsiKafeinHariIni: todayCaffeineMg + " mg",
+      waktuMinumKopiTerakhir: lastDrink,
+      riwayatKonsumsiTerbaru: logs.slice(0, 5).map((log) => ({
+        waktu: dayjs(log.date).tz("Asia/Jakarta").format("DD MMM YYYY, HH:mm"),
+        kopi: log.coffee_tbsp + " sdm",
+        gula: log.sugar_tbsp + " sdm",
+      })),
     };
 
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `Waktu sekarang (WIB): ${wibTime}\nData pengguna ${userName}:\n${JSON.stringify(context, null, 2)}\n\nBerikan analisis sarkastikmu sekarang.`,
+      contents: `Data telemetri kesehatan pasien ${userName}:\n${JSON.stringify(context, null, 2)}\n\nBerikan laporan medis dan anjuran kesehatan Anda.`,
       config: {
         systemInstruction,
       },
     });
 
-    const analysis = response.text || "Terjadi kesalahan saat memproses respons AI.";
+    const analysis = response.text || "Terjadi kendala dalam merumuskan analisis medis.";
     const updatedAt = new Date().toISOString();
 
     await db
@@ -96,8 +100,8 @@ export async function generateAiAnalysis(userId: string, userName: string): Prom
 
     const errorMsg =
       error.message?.includes("API key not valid") || error.status === "INVALID_ARGUMENT"
-        ? "Sistem AI ngambek karena API Key-mu sampah. Benerin dulu konfigurasinya kalau mau dapet omelan kesehatan dari gue."
-        : "Terjadi malfungsi pada modul analisis. Sepertinya otak AI-nya korslet kena tumpahan kopi. Coba lagi nanti.";
+        ? "Sistem analisis sedang mengalami gangguan konfigurasi teknis. Mohon hubungi administrator."
+        : "Maaf, sistem pemantau kesehatan AI kami sedang mengalami malfungsi sementara. Mohon coba beberapa saat lagi.";
 
     return { analysis: errorMsg, updated_at: new Date().toISOString() };
   }

@@ -23,9 +23,9 @@ export default function AiAnalysis({ analysis, updatedAt }: AiAnalysisProps) {
         <div>
           <div className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-accent">
             <Terminal size={14} />
-            AI_Analysis_Output
+            Health_Analysis_Report
           </div>
-          <div className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Module: Coffee_System_Core // Status: Active</div>
+          <div className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Module: Dr. AI Health Monitor // Status: Active</div>
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export default function AiAnalysis({ analysis, updatedAt }: AiAnalysisProps) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <div className="text-[8px] font-mono text-white/10 uppercase">Ver: 3.5-FLASH-SARCASM</div>
+          <div className="text-[8px] font-mono text-white/10 uppercase">Ver: 1.0-HEALTH-MD</div>
           {updatedAt && <div className="text-[8px] font-mono text-white/30 uppercase tracking-tighter">Last Updated: {formatDateTime(updatedAt)}</div>}
         </div>
       </div>
